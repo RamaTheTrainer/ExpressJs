@@ -1,0 +1,64 @@
+var express=require('express');
+var app=new express();
+var bb=require('bluebird');
+var bodyparser=require('body-parser');
+
+var options={
+    promiseLib:bb
+}
+
+var pgp=require('pg-promise')(options)
+var con='postgres://postgres:root@192.168.0.69:5432/db1'
+
+
+app.set('port',process.env.PORT||4500)
+
+app.use(bodyparser.urlencoded({extended:true}))
+app.use(bodyparser.json())
+
+app.get('/',(req,res,next)=>{
+    var db=pgp(con)
+    db.any('select * from fn_all()').then((data)=>{
+        res.send(data)
+    })
+    pgp.end();
+})
+
+app.post('/',(req,res,next)=>{
+    var db=pgp(con);
+    id=req.body.id;
+    name=req.body.name;
+    ci=req.body.cit;
+    sala=req.body.sal;
+    db.none('select * from fn_ins($1,$2,$3,$4)',[id,name,ci,sala]).then(()=>{
+        res.send("Inserted Successfully")
+    })
+    pgp.end();
+})
+app.put('/:id',(req,res,next)=>{
+    var db=pgp(con)
+    id=req.params.id;
+    name=req.body.name;
+    ci=req.body.cit;
+    sala=req.body.sal;
+    db.none('select * from fn_upd($1,$2,$3,$4)',[id,name,ci,sala]).then(()=>{
+        res.send("Inserted Successfully")
+    })
+    pgp.end();
+})
+app.delete('/:id',(req,res,next)=>{
+    var db=pgp(con)
+    id=req.params.id;
+    db.none('delete from Employee where eid=$1',id).then(()=>{
+        res.send("Deleted Successfully")
+    })
+    pgp.end();
+})
+
+app.listen(app.get('port'),(err)=>{
+    if(err){
+        console.log("Server can't start")
+    }else{
+        console.log('Server Strated at http://localhost:'+app.get('port'))
+    }
+})
